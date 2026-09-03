@@ -1,75 +1,106 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мои одногруппники</title>
-    <link rel="stylesheet" href="style.css">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>позор УАТ</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
 </head>
 
 <body>
 
-<header>
-    <h1>Мои одногруппники</h1>
-    <p>Информация о нашей группе</p>
-</header>
+    <header>
 
-<main>
+        <h1>позор УАТ</h1>
 
-    <!-- Форма добавления -->
-    <section class="add-section">
-        <h2>Добавить одногруппника</h2>
+        <p>
+            Здесь можно познакомиться с нашей группой
+        </p>
+
+        <button
+            id="adminButton"
+            type="button"
+        >
+            🔐 Войти как администратор
+        </button>
+
+    </header>
+
+
+    <!-- ================= -->
+    <!-- Форма администратора -->
+    <!-- ================= -->
+
+    <section
+        id="adminPanel"
+        class="admin-panel hidden"
+    >
+
+        <h2>Админ-панель</h2>
 
         <form id="personForm">
 
-            <label>
-                Имя и фамилия
-                <input
-                    type="text"
-                    id="name"
-                    placeholder="Например: Иван Иванов"
-                    required
-                >
-            </label>
+            <input
+                type="text"
+                id="name"
+                placeholder="Имя и фамилия"
+                required
+            >
 
-            <label>
-                Биография
-                <textarea
-                    id="bio"
-                    placeholder="Напишите биографию..."
-                    required
-                ></textarea>
-            </label>
+            <textarea
+                id="bio"
+                placeholder="Биография"
+                required
+            ></textarea>
 
-            <label>
-                Фотография
-                <input
-                    type="file"
-                    id="photo"
-                    accept="image/*"
-                    required
-                >
-            </label>
+            <input
+                type="file"
+                id="photo"
+                accept="image/*"
+                required
+            >
 
             <button type="submit">
-                Добавить
+                Добавить дауна
             </button>
 
         </form>
+
+        <button
+            id="logoutButton"
+            type="button"
+        >
+            Выйти
+        </button>
+
     </section>
 
 
+    <!-- ================= -->
     <!-- Список людей -->
-    <section class="people-section">
-        <h2>Одногруппники</h2>
+    <!-- ================= -->
 
-        <div id="peopleList" class="people-list"></div>
+    <main>
 
-    </section>
+        <div id="peopleList">
+            Загрузка...
+        </div>
 
-</main>
+    </main>
 
-<script src="script.js"></script>
+
+    <script src="script.js"></script>
 
 </body>
+
 </html>

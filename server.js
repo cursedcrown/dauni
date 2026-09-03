@@ -3,14 +3,26 @@ const multer = require("multer");
 const Database = require("better-sqlite3");
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// =====================
+// Настройки администратора
+// =====================
 
-// ====================
-// Папка для фото
-// ====================
+const ADMIN_LOGIN = process.env.ADMIN_LOGIN || "admin";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+
+if (!ADMIN_PASSWORD) {
+    console.warn("ВНИМАНИЕ: ADMIN_PASSWORD не задан!");
+}
+
+
+// =====================
+// Папка для фотографий
+// =====================
 
 const uploadDir = path.join(__dirname, "uploads");
 
@@ -19,9 +31,9 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 
-// ====================
-// Загрузка файлов
-// ====================
+// =====================
+// Загрузка фотографий
+// =====================
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -29,45 +41,46 @@ const storage = multer.diskStorage({
     },
 
     filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
 
-        const ext =
-            path.extname(file.originalname);
-
-        const fileName =
-            Date.now() + ext;
-
-        cb(null, fileName);
+        cb(
+            null,
+            Date.now() + "-" + crypto.randomBytes(8).toString("hex") + ext
+        );
     }
 });
 
 const upload = multer({
-    storage: storage
+    storage: storage,
+    limits: {
+        fileSize: 5 * 1024 * 1024
+    }
 });
 
 
-// ====================
+// =====================
 // База данных
-// ====================
+// =====================
 
 const db = new Database("database.db");
 
 db.prepare(`
-CREATE TABLE IF NOT EXISTS people (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    bio TEXT NOT NULL,
-    photo TEXT NOT NULL
-)
+    CREATE TABLE IF NOT EXISTS people (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        bio TEXT NOT NULL,
+        photo TEXT NOT NULL
+    )
 `).run();
 
 
-// ====================
-// Настройки
-// ====================
+// =====================
+// Middleware
+// =====================
 
 app.use(express.json());
 
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "public")));
 
 app.use(
     "/uploads",
@@ -75,103 +88,132 @@ app.use(
 );
 
 
-// ====================
-// Получить всех людей
-// ====================
+// =====================
+// Простая авторизация
+// =====================
+
+function checkAuth(req, res, next) {
+
+    const login = req.headers["x-admin-login"];
+    const password = req.headers["x-admin-password"];
+
+    if (
+        login === ADMIN_LOGIN &&
+        password &&
+        ADMIN_PASSWORD &&
+        password === ADMIN_PASSWORD
+    ) {
+        next();
+        return;
+    }
+
+    res.status(401).json({
+        error: "Неверный логин или пароль"
+    });
+}
+
+
+// =====================
+// Получить список людей
+// Доступно всем
+// =====================
 
 app.get("/api/people", (req, res) => {
 
-    const people =
-        db.prepare(
-            "SELECT * FROM people ORDER BY id DESC"
-        ).all();
+    const people = db
+        .prepare("SELECT * FROM people ORDER BY id DESC")
+        .all();
 
     res.json(people);
 });
 
 
-// ====================
+// =====================
 // Добавить человека
-// ====================
+// Только админ
+// =====================
 
 app.post(
     "/api/people",
+    checkAuth,
     upload.single("photo"),
 
     (req, res) => {
 
-        const name =
-            req.body.name;
+        const name = req.body.name;
+        const bio = req.body.bio;
 
-        const bio =
-            req.body.bio;
+        if (!name || !bio) {
+
+            return res.status(400).json({
+                error: "Заполните имя и биографию"
+            });
+        }
 
         if (!req.file) {
 
             return res.status(400).json({
-                error: "Нет фото"
+                error: "Добавьте фотографию"
             });
-
         }
 
         const photo =
-            "/uploads/" +
-            req.file.filename;
+            "/uploads/" + req.file.filename;
 
-        const result =
-            db.prepare(`
+        const result = db
+            .prepare(`
                 INSERT INTO people
                 (name, bio, photo)
                 VALUES (?, ?, ?)
-            `).run(
-                name,
-                bio,
-                photo
-            );
+            `)
+            .run(name, bio, photo);
 
         res.json({
+            success: true,
             id: result.lastInsertRowid
         });
     }
 );
 
 
-// ====================
-// Удаление
-// ====================
+// =====================
+// Удалить человека
+// Только админ
+// =====================
 
 app.delete(
     "/api/people/:id",
+    checkAuth,
 
     (req, res) => {
 
-        const id =
-            req.params.id;
+        const id = Number(req.params.id);
 
-        const person =
-            db.prepare(
-                "SELECT * FROM people WHERE id=?"
-            ).get(id);
+        const person = db
+            .prepare(
+                "SELECT * FROM people WHERE id = ?"
+            )
+            .get(id);
 
         if (!person) {
 
             return res.status(404).json({
-                error: "Не найден"
+                error: "Человек не найден"
             });
         }
 
-        const filePath =
-            path.join(
-                uploadDir,
-                path.basename(person.photo)
-            );
+        const filename =
+            path.basename(person.photo);
 
-        if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
+        const photoPath =
+            path.join(uploadDir, filename);
+
+        if (fs.existsSync(photoPath)) {
+            fs.unlinkSync(photoPath);
         }
 
         db.prepare(
-            "DELETE FROM people WHERE id=?"
+            "DELETE FROM people WHERE id = ?"
         ).run(id);
 
         res.json({
@@ -181,9 +223,9 @@ app.delete(
 );
 
 
-// ====================
+// =====================
 // Запуск
-// ====================
+// =====================
 
 app.listen(PORT, () => {
 
