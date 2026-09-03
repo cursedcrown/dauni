@@ -8,10 +8,6 @@ const crypto = require("crypto");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// =====================
-// Настройки администратора
-// =====================
-
 const ADMIN_LOGIN = process.env.ADMIN_LOGIN || "admin";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
@@ -19,21 +15,11 @@ if (!ADMIN_PASSWORD) {
     console.warn("ВНИМАНИЕ: ADMIN_PASSWORD не задан!");
 }
 
-
-// =====================
-// Папка для фотографий
-// =====================
-
 const uploadDir = path.join(__dirname, "uploads");
 
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir);
 }
-
-
-// =====================
-// Загрузка фотографий
-// =====================
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -45,22 +31,21 @@ const storage = multer.diskStorage({
 
         cb(
             null,
-            Date.now() + "-" + crypto.randomBytes(8).toString("hex") + ext
+            Date.now() +
+            "-" +
+            crypto.randomBytes(8).toString("hex") +
+            ext
         );
     }
 });
 
 const upload = multer({
     storage: storage,
+
     limits: {
         fileSize: 5 * 1024 * 1024
     }
 });
-
-
-// =====================
-// База данных
-// =====================
 
 const db = new Database("database.db");
 
@@ -73,14 +58,13 @@ db.prepare(`
     )
 `).run();
 
-
-// =====================
-// Middleware
-// =====================
-
 app.use(express.json());
 
-app.use(express.static(path.join(__dirname, "public")));
+app.use(
+    express.static(
+        path.join(__dirname, "public")
+    )
+);
 
 app.use(
     "/uploads",
@@ -88,19 +72,17 @@ app.use(
 );
 
 
-// =====================
-// Простая авторизация
-// =====================
+// =========================
+// ПРОВЕРКА АДМИНА
+// =========================
 
 function checkAuth(req, res, next) {
-
     const login = req.headers["x-admin-login"];
     const password = req.headers["x-admin-password"];
 
     if (
-        login === ADMIN_LOGIN &&
-        password &&
         ADMIN_PASSWORD &&
+        login === ADMIN_LOGIN &&
         password === ADMIN_PASSWORD
     ) {
         next();
@@ -113,52 +95,72 @@ function checkAuth(req, res, next) {
 }
 
 
-// =====================
-// Получить список людей
-// Доступно всем
-// =====================
+// =========================
+// ВХОД АДМИНИСТРАТОРА
+// =========================
+
+app.post("/api/login", (req, res) => {
+    const { login, password } = req.body;
+
+    if (
+        ADMIN_PASSWORD &&
+        login === ADMIN_LOGIN &&
+        password === ADMIN_PASSWORD
+    ) {
+        return res.json({
+            success: true
+        });
+    }
+
+    res.status(401).json({
+        error: "Неверный логин или пароль"
+    });
+});
+
+
+// =========================
+// ПОЛУЧИТЬ СПИСОК
+// =========================
 
 app.get("/api/people", (req, res) => {
-
     const people = db
-        .prepare("SELECT * FROM people ORDER BY id DESC")
+        .prepare(
+            "SELECT * FROM people ORDER BY id DESC"
+        )
         .all();
 
     res.json(people);
 });
 
 
-// =====================
-// Добавить человека
-// Только админ
-// =====================
+// =========================
+// ДОБАВИТЬ
+// =========================
 
 app.post(
     "/api/people",
     checkAuth,
     upload.single("photo"),
-
     (req, res) => {
 
         const name = req.body.name;
         const bio = req.body.bio;
 
         if (!name || !bio) {
-
             return res.status(400).json({
                 error: "Заполните имя и биографию"
             });
         }
 
         if (!req.file) {
-
             return res.status(400).json({
                 error: "Добавьте фотографию"
             });
         }
 
         const photo =
-            "/uploads/" + req.file.filename;
+            "/uploads/" +
+            req.file.filename;
 
         const result = db
             .prepare(`
@@ -166,7 +168,11 @@ app.post(
                 (name, bio, photo)
                 VALUES (?, ?, ?)
             `)
-            .run(name, bio, photo);
+            .run(
+                name,
+                bio,
+                photo
+            );
 
         res.json({
             success: true,
@@ -176,18 +182,17 @@ app.post(
 );
 
 
-// =====================
-// Удалить человека
-// Только админ
-// =====================
+// =========================
+// УДАЛИТЬ
+// =========================
 
 app.delete(
     "/api/people/:id",
     checkAuth,
-
     (req, res) => {
 
-        const id = Number(req.params.id);
+        const id =
+            Number(req.params.id);
 
         const person = db
             .prepare(
@@ -196,7 +201,6 @@ app.delete(
             .get(id);
 
         if (!person) {
-
             return res.status(404).json({
                 error: "Человек не найден"
             });
@@ -206,7 +210,10 @@ app.delete(
             path.basename(person.photo);
 
         const photoPath =
-            path.join(uploadDir, filename);
+            path.join(
+                uploadDir,
+                filename
+            );
 
         if (fs.existsSync(photoPath)) {
             fs.unlinkSync(photoPath);
@@ -223,14 +230,12 @@ app.delete(
 );
 
 
-// =====================
-// Запуск
-// =====================
+// =========================
+// ЗАПУСК
+// =========================
 
 app.listen(PORT, () => {
-
     console.log(
         `Сайт работает: http://localhost:${PORT}`
     );
-
 });

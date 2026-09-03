@@ -2,9 +2,9 @@ let adminLogin = null;
 let adminPassword = null;
 
 
-// =====================
-// Получение людей
-// =====================
+// =========================
+// ЗАГРУЗКА ЛЮДЕЙ
+// =========================
 
 async function loadPeople() {
 
@@ -20,7 +20,6 @@ async function loadPeople() {
     list.innerHTML = "";
 
     if (people.length === 0) {
-
         list.innerHTML =
             "<p>Пока никто не добавлен.</p>";
 
@@ -32,7 +31,8 @@ async function loadPeople() {
         const card =
             document.createElement("div");
 
-        card.className = "person-card";
+        card.className =
+            "person-card";
 
         card.innerHTML = `
             <img
@@ -41,7 +41,6 @@ async function loadPeople() {
             >
 
             <div class="person-info">
-
                 <h2>
                     ${escapeHtml(person.name)}
                 </h2>
@@ -49,14 +48,17 @@ async function loadPeople() {
                 <p>
                     ${escapeHtml(person.bio)}
                 </p>
-
             </div>
         `;
 
-        // Кнопка удаления показывается
-        // только авторизованному администратору
 
-        if (adminLogin && adminPassword) {
+        // Кнопка удаления
+        // появляется ТОЛЬКО у админа
+
+        if (
+            adminLogin &&
+            adminPassword
+        ) {
 
             const deleteButton =
                 document.createElement("button");
@@ -70,7 +72,9 @@ async function loadPeople() {
             deleteButton.onclick =
                 () => deletePerson(person.id);
 
-            card.appendChild(deleteButton);
+            card.appendChild(
+                deleteButton
+            );
         }
 
         list.appendChild(card);
@@ -78,158 +82,237 @@ async function loadPeople() {
 }
 
 
-// =====================
-// Вход администратора
-// =====================
+// =========================
+// КНОПКА ВХОДА
+// =========================
 
 document
     .getElementById("adminButton")
-    .addEventListener("click", async () => {
+    .addEventListener(
+        "click",
+        async () => {
 
-        const login =
-            prompt("Логин администратора:");
+            const login =
+                prompt(
+                    "Логин администратора:"
+                );
 
-        if (!login) {
-            return;
-        }
+            if (!login) return;
 
-        const password =
-            prompt("Пароль администратора:");
 
-        if (!password) {
-            return;
-        }
+            const password =
+                prompt(
+                    "Пароль администратора:"
+                );
 
-        // Проверяем данные,
-        // отправляя запрос на сервер
+            if (!password) return;
 
-        const response =
-            await fetch("/api/people", {
-                headers: {
-                    "x-admin-login": login,
-                    "x-admin-password": password
-                }
-            });
 
-        if (!response.ok) {
+            // Настоящая проверка
+            // на сервере
 
-            alert("❌ Неверный логин или пароль.");
+            const response =
+                await fetch(
+                    "/api/login",
+                    {
+                        method: "POST",
 
-            return;
-        }
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
 
-        adminLogin = login;
-        adminPassword = password;
+                        body: JSON.stringify({
+                            login: login,
+                            password: password
+                        })
+                    }
+                );
 
-        document
-            .getElementById("adminPanel")
-            .classList.remove("hidden");
 
-        document
-            .getElementById("adminButton")
-            .textContent =
+            if (!response.ok) {
+
+                alert(
+                    "❌ Неверный логин или пароль."
+                );
+
+                return;
+            }
+
+
+            // Запоминаем данные
+            // только после успешной проверки
+
+            adminLogin = login;
+            adminPassword = password;
+
+
+            // Показываем админку
+
+            document
+                .getElementById("adminPanel")
+                .classList
+                .remove("hidden");
+
+
+            document
+                .getElementById("adminButton")
+                .textContent =
                 "🔓 Вы вошли как администратор";
 
-        loadPeople();
-    });
+
+            loadPeople();
+        }
+    );
 
 
-// =====================
-// Выход
-// =====================
+// =========================
+// ВЫХОД
+// =========================
 
 document
     .getElementById("logoutButton")
-    .addEventListener("click", () => {
+    .addEventListener(
+        "click",
+        () => {
 
-        adminLogin = null;
-        adminPassword = null;
+            adminLogin = null;
+            adminPassword = null;
 
-        document
-            .getElementById("adminPanel")
-            .classList.add("hidden");
 
-        document
-            .getElementById("adminButton")
-            .textContent =
+            document
+                .getElementById("adminPanel")
+                .classList
+                .add("hidden");
+
+
+            document
+                .getElementById("adminButton")
+                .textContent =
                 "🔐 Войти как администратор";
 
-        loadPeople();
-    });
+
+            loadPeople();
+        }
+    );
 
 
-// =====================
-// Добавление человека
-// =====================
+// =========================
+// ДОБАВЛЕНИЕ
+// =========================
 
 document
     .getElementById("personForm")
-    .addEventListener("submit", async (event) => {
+    .addEventListener(
+        "submit",
+        async (event) => {
 
-        event.preventDefault();
+            event.preventDefault();
 
-        if (!adminLogin || !adminPassword) {
 
-            alert("Сначала войдите как администратор.");
+            if (
+                !adminLogin ||
+                !adminPassword
+            ) {
 
-            return;
-        }
+                alert(
+                    "Сначала войдите как администратор."
+                );
 
-        const name =
-            document.getElementById("name").value;
+                return;
+            }
 
-        const bio =
-            document.getElementById("bio").value;
 
-        const photo =
-            document.getElementById("photo").files[0];
+            const name =
+                document
+                    .getElementById("name")
+                    .value;
 
-        const formData =
-            new FormData();
+            const bio =
+                document
+                    .getElementById("bio")
+                    .value;
 
-        formData.append("name", name);
-        formData.append("bio", bio);
-        formData.append("photo", photo);
+            const photo =
+                document
+                    .getElementById("photo")
+                    .files[0];
 
-        const response =
-            await fetch("/api/people", {
 
-                method: "POST",
+            const formData =
+                new FormData();
 
-                headers: {
-                    "x-admin-login": adminLogin,
-                    "x-admin-password": adminPassword
-                },
-
-                body: formData
-            });
-
-        const result =
-            await response.json();
-
-        if (!response.ok) {
-
-            alert(
-                "Ошибка: " +
-                (result.error || "Неизвестная ошибка")
+            formData.append(
+                "name",
+                name
             );
 
-            return;
+            formData.append(
+                "bio",
+                bio
+            );
+
+            formData.append(
+                "photo",
+                photo
+            );
+
+
+            const response =
+                await fetch(
+                    "/api/people",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "x-admin-login":
+                                adminLogin,
+
+                            "x-admin-password":
+                                adminPassword
+                        },
+
+                        body: formData
+                    }
+                );
+
+
+            const result =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                alert(
+                    "Ошибка: " +
+                    (
+                        result.error ||
+                        "Неизвестная ошибка"
+                    )
+                );
+
+                return;
+            }
+
+
+            alert(
+                "✅ Одногруппник добавлен!"
+            );
+
+
+            document
+                .getElementById("personForm")
+                .reset();
+
+
+            loadPeople();
         }
-
-        alert("✅ Одногруппник добавлен!");
-
-        document
-            .getElementById("personForm")
-            .reset();
-
-        loadPeople();
-    });
+    );
 
 
-// =====================
-// Удаление
-// =====================
+// =========================
+// УДАЛЕНИЕ
+// =========================
 
 async function deletePerson(id) {
 
@@ -241,6 +324,7 @@ async function deletePerson(id) {
         return;
     }
 
+
     const response =
         await fetch(
             "/api/people/" + id,
@@ -248,18 +332,25 @@ async function deletePerson(id) {
                 method: "DELETE",
 
                 headers: {
-                    "x-admin-login": adminLogin,
-                    "x-admin-password": adminPassword
+                    "x-admin-login":
+                        adminLogin,
+
+                    "x-admin-password":
+                        adminPassword
                 }
             }
         );
 
+
     if (!response.ok) {
 
-        alert("❌ Не удалось удалить.");
+        alert(
+            "❌ Не удалось удалить."
+        );
 
         return;
     }
+
 
     alert("✅ Удалено.");
 
@@ -267,9 +358,9 @@ async function deletePerson(id) {
 }
 
 
-// =====================
-// Защита от HTML
-// =====================
+// =========================
+// ЗАЩИТА ОТ HTML
+// =========================
 
 function escapeHtml(text) {
 
@@ -282,8 +373,8 @@ function escapeHtml(text) {
 }
 
 
-// =====================
-// Старт
-// =====================
+// =========================
+// ЗАПУСК
+// =========================
 
 loadPeople();
