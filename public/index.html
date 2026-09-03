@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мои одногруппники</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<header>
+    <h1>Мои одногруппники</h1>
+    <p>Информация о нашей группе</p>
+</header>
+
+<main>
+
+    <!-- Форма добавления -->
+    <section class="add-section">
+        <h2>Добавить одногруппника</h2>
+
+        <form id="personForm">
+
+            <label>
+                Имя и фамилия
+                <input
+                    type="text"
+                    id="name"
+                    placeholder="Например: Иван Иванов"
+                    required
+                >
+            </label>
+
+            <label>
+                Биография
+                <textarea
+                    id="bio"
+                    placeholder="Напишите биографию..."
+                    required
+                ></textarea>
+            </label>
+
+            <label>
+                Фотография
+                <input
+                    type="file"
+                    id="photo"
+                    accept="image/*"
+                    required
+                >
+            </label>
+
+            <button type="submit">
+                Добавить
+            </button>
+
+        </form>
+    </section>
+
+
+    <!-- Список людей -->
+    <section class="people-section">
+        <h2>Одногруппники</h2>
+
+        <div id="peopleList" class="people-list"></div>
+
+    </section>
+
+</main>
+
+<script src="script.js"></script>
+
+</body>
+</html>
